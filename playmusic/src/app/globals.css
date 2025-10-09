@@ -1,26 +1,222 @@
-@import "tailwindcss";
+/* src/app/globals.css */
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/*
+==================================================
+  ESTILOS GERAIS DA PÁGINA (BODY)
+  Configura o fundo escuro de toda a página e usa Flexbox 
+  para centralizar o player na vertical e horizontal.
+==================================================
+*/
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    background-color: #121212; /* Fundo escuro */
+    display: flex;
+    justify-content: center;   /* Centraliza horizontalmente */
+    align-items: center;       /* Centraliza verticalmente */
+    height: 100vh;             /* Ocupa toda a altura da tela */
+    margin: 0;
+    font-family: Arial, sans-serif;
+    color: #fff;               /* Cor do texto padrão é branco */
+}
+
+/*
+==================================================
+  ESTILOS DO CARTÃO PRINCIPAL (PLAYER-CARD)
+  Define a aparência e o layout interno do container do player.
+==================================================
+*/
+.player-card {
+    background-color: #282828; /* Fundo do player */
+    border-radius: 20px;       /* Cantos arredondados */
+    padding: 20px;
+    width: 350px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); /* Sombra para profundidade */
+    display: flex;
+    flex-direction: column;    /* Empilha os elementos (capa, título, barra) verticalmente */
+    align-items: center;       /* Centraliza itens dentro do cartão */
+}
+
+/*
+==================================================
+  ESTILOS DE CAPA, TÍTULO E SUBTÍTULO
+  Define o visual da arte e das informações da música.
+==================================================
+*/
+.cover-image {
+    width: 100%;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.info {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.subtitle {
+    font-size: 1rem;
+    color: #b3b3b3; /* Cor cinza clara para o artista/subtítulo */
+    margin: 5px 0 0;
+}
+
+/*
+==================================================
+  ESTILOS DA BARRA DE PROGRESSO E TEMPO
+  Usa Flexbox para alinhar o tempo atual, o slider e o tempo total.
+==================================================
+*/
+.progress-bar-container {
+    width: 100%;
+    display: flex;
+    align-items: center; /* Alinha tudo verticalmente no centro */
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.current-time, .total-time {
+    font-size: 0.8rem;
+    color: #b3b3b3;
+}
+
+/* Oculta classes antigas, garantindo que apenas o novo <input type="range"> seja usado */
+.progress-bar, .progress { 
+    display: none; 
+}
+/* ------------------------------------------------------------------ */
+/* ESTILIZAÇÃO DO SLIDER DE BUSCA (#progress-slider) */
+/* ------------------------------------------------------------------ */
+
+#progress-slider {
+    flex-grow: 1;
+    height: 4px;
+    background: transparent; /* CHAVE: Permite que o JS controle a cor */
+    border-radius: 2px;
+    cursor: pointer;
+    -webkit-appearance: none;
+    margin: 0;
+    padding: 0;
+    outline: none;
+}
+
+/* Estilização da trilha no Chrome/Safari/Edge */
+#progress-slider::-webkit-slider-runnable-track {
+    /* CORREÇÃO CHAVE: Remove o background default, forçando a transparência */
+    background: none; 
+    height: 4px;
+    border-radius: 2px;
+}
+
+/* Estilização do thumb (botão) no Chrome/Safari/Edge */
+#progress-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    background: #1ed760;
+    cursor: pointer;
+    margin-top: -4px; /* Garante alinhamento central */
+}
+
+/* Estilização da trilha no Firefox */
+#progress-slider::-moz-range-track {
+    background: #535353;
+    height: 4px;
+    border-radius: 2px;
+}
+
+/* Estilização do thumb (botão) no Firefox */
+#progress-slider::-moz-range-thumb {
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    background: #1ed760;
+    cursor: pointer;
+    border: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* CONTROLES E VOLUME */
+/* ------------------------------------------------------------------ */
+
+.controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    width: 100%;
+}
+
+.control-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+}
+
+/* Estilo para os ícones do Font Awesome */
+.control-button i {
+    color: #fff;
+    font-size: 20px;
+}
+
+/* Estilo para o ícone de play/pause */
+.play-pause i {
+    font-size: 30px;
+}
+
+/* CORREÇÃO: Nova classe para evitar CSS inline no Player.tsx */
+.play-pause-icon {
+    font-size: 30px !important;
+}
+
+/* Remove classes antigas de imagem */
+.control-button img, .play-pause img {
+    display: none;
+}
+
+.volume-control {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.volume-slider {
+    width: 80px;
+    height: 4px;
+    background: transparent; /* Permite que o JS controle a cor */
+    border-radius: 2px;
+    -webkit-appearance: none;
+    outline: none;
+    margin: 0;
+}
+
+/* CORREÇÃO FINAL: Volume Slider (para Webkit) */
+.volume-slider::-webkit-slider-runnable-track {
+    /* CORREÇÃO CHAVE: Remove o background default, forçando a transparência */
+    background: none; 
+    height: 4px;
+    border-radius: 2px;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    background: #1ed760;
+    cursor: pointer;
+    margin-top: -4px; /* Garante alinhamento central */
+}
+
+.volume-slider::-moz-range-thumb {
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    background: #1ed760;
+    cursor: pointer;
+    border: none;
 }
