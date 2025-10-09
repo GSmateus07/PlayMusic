@@ -1,7 +1,5 @@
 // components/Player.tsx
 
-// 'use client' é uma diretiva do Next.js (App Router) que marca este componente
-// como um "Client Component". Isso é necessário porque ele usa Hooks de estado,
 // manipula eventos do navegador (como clique, mouseup) e acessa o DOM (audioRef).
 'use client'; 
 
