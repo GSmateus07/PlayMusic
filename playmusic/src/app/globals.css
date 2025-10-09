@@ -1,17 +1,15 @@
-/* src/app/globals.css */
-
 /*
 ==================================================
-  ESTILOS GERAIS DA PÁGINA (BODY)
-  Configura o fundo escuro de toda a página e usa Flexbox 
-  para centralizar o player na vertical e horizontal.
+ ESTILOS GERAIS DA PÁGINA (BODY)
+ Configura o fundo escuro de toda a página e usa Flexbox 
+ para centralizar o player na vertical e horizontal.
 ==================================================
 */
 body {
     background-color: #121212; /* Fundo escuro */
     display: flex;
-    justify-content: center;   /* Centraliza horizontalmente */
-    align-items: center;       /* Centraliza verticalmente */
+    justify-content: center;   /* Centraliza horizontalmente (Flexbox) */
+    align-items: center;       /* Centraliza verticalmente (Flexbox) */
     height: 100vh;             /* Ocupa toda a altura da tela */
     margin: 0;
     font-family: Arial, sans-serif;
@@ -20,8 +18,8 @@ body {
 
 /*
 ==================================================
-  ESTILOS DO CARTÃO PRINCIPAL (PLAYER-CARD)
-  Define a aparência e o layout interno do container do player.
+ ESTILOS DO CARTÃO PRINCIPAL (PLAYER-CARD)
+ Define a aparência e o layout interno do container do player.
 ==================================================
 */
 .player-card {
@@ -37,12 +35,12 @@ body {
 
 /*
 ==================================================
-  ESTILOS DE CAPA, TÍTULO E SUBTÍTULO
-  Define o visual da arte e das informações da música.
+ ESTILOS DE CAPA, TÍTULO E SUBTÍTULO
+ Define o visual da arte e das informações da música.
 ==================================================
 */
 .cover-image {
-    width: 100%;
+    width: 100%; /* Garante que a imagem ocupe 100% da largura do player-card */
     border-radius: 10px;
     margin-bottom: 20px;
 }
@@ -66,15 +64,15 @@ body {
 
 /*
 ==================================================
-  ESTILOS DA BARRA DE PROGRESSO E TEMPO
-  Usa Flexbox para alinhar o tempo atual, o slider e o tempo total.
+ ESTILOS DA BARRA DE PROGRESSO E TEMPO
+ Usa Flexbox para alinhar o tempo atual, o slider e o tempo total.
 ==================================================
 */
 .progress-bar-container {
     width: 100%;
     display: flex;
     align-items: center; /* Alinha tudo verticalmente no centro */
-    gap: 10px;
+    gap: 10px; /* Espaçamento entre o tempo, o slider e o tempo total */
     margin-bottom: 20px;
 }
 
@@ -92,12 +90,12 @@ body {
 /* ------------------------------------------------------------------ */
 
 #progress-slider {
-    flex-grow: 1;
+    flex-grow: 1; /* O slider ocupa todo o espaço disponível */
     height: 4px;
-    background: transparent; /* CHAVE: Permite que o JS controle a cor */
+    background: transparent; /* CHAVE: Permite que o JS controle a cor via linear-gradient */
     border-radius: 2px;
     cursor: pointer;
-    -webkit-appearance: none;
+    -webkit-appearance: none; /* Remove a aparência nativa do Webkit (Chrome/Safari) */
     margin: 0;
     padding: 0;
     outline: none;
@@ -105,7 +103,8 @@ body {
 
 /* Estilização da trilha no Chrome/Safari/Edge */
 #progress-slider::-webkit-slider-runnable-track {
-    /* CORREÇÃO CHAVE: Remove o background default, forçando a transparência */
+    /* CORREÇÃO CHAVE: Remove o background default, forçando a transparência,
+       para que a cor seja aplicada no elemento principal (#progress-slider) pelo JS */
     background: none; 
     height: 4px;
     border-radius: 2px;
@@ -117,9 +116,9 @@ body {
     height: 12px;
     width: 12px;
     border-radius: 50%;
-    background: #1ed760;
+    background: #1ed760; /* Cor verde do Spotify/player */
     cursor: pointer;
-    margin-top: -4px; /* Garante alinhamento central */
+    margin-top: -4px; /* Garante alinhamento central com a barra */
 }
 
 /* Estilização da trilha no Firefox */
@@ -134,43 +133,46 @@ body {
     height: 12px;
     width: 12px;
     border-radius: 50%;
-    background: #1ed760;
+    background: #1ed760; /* Cor verde do Spotify/player */
     cursor: pointer;
     border: none;
 }
 
 /* ------------------------------------------------------------------ */
 /* CONTROLES E VOLUME */
+/* Estilos para o container dos botões de reprodução e controle de volume. */
 /* ------------------------------------------------------------------ */
 
 .controls {
     display: flex;
-    align-items: center;
-    justify-content: space-around;
+    align-items: center; /* Alinha verticalmente no centro */
+    justify-content: space-around; /* Distribui o espaço entre os botões */
     width: 100%;
 }
 
 .control-button {
-    background: none;
-    border: none;
+    background: none; /* Remove fundo */
+    border: none; /* Remove borda */
     cursor: pointer;
     padding: 10px;
 }
 
 /* Estilo para os ícones do Font Awesome */
 .control-button i {
-    color: #fff;
-    font-size: 20px;
+    color: #fff; /* Ícones brancos */
+    font-size: 20px; /* Tamanho padrão */
 }
 
 /* Estilo para o ícone de play/pause */
 .play-pause i {
-    font-size: 30px;
+    font-size: 30px; /* Tamanho maior (geral) */
 }
 
 /* CORREÇÃO: Nova classe para evitar CSS inline no Player.tsx */
 .play-pause-icon {
-    font-size: 30px !important;
+    /* Garante que o tamanho do ícone de play/pause seja 30px,
+       resolvendo o aviso de estilo inline do linter */
+    font-size: 30px !important; 
 }
 
 /* Remove classes antigas de imagem */
@@ -181,42 +183,44 @@ body {
 .volume-control {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 5px; /* Espaço entre o ícone de volume e o slider */
 }
 
+/* Estilização do slider de volume */
 .volume-slider {
-    width: 80px;
+    width: 80px; /* Largura reduzida */
     height: 4px;
     background: transparent; /* Permite que o JS controle a cor */
     border-radius: 2px;
-    -webkit-appearance: none;
+    -webkit-appearance: none; /* Remove aparência nativa */
     outline: none;
     margin: 0;
 }
 
-/* CORREÇÃO FINAL: Volume Slider (para Webkit) */
+/* Estilização da trilha do slider de volume no Chrome/Safari/Edge */
 .volume-slider::-webkit-slider-runnable-track {
-    /* CORREÇÃO CHAVE: Remove o background default, forçando a transparência */
-    background: none; 
+    background: none; /* Remove o fundo nativo da trilha */
     height: 4px;
     border-radius: 2px;
 }
 
+/* Estilização do thumb (botão) do slider de volume no Chrome/Safari/Edge */
 .volume-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     height: 12px;
     width: 12px;
     border-radius: 50%;
-    background: #1ed760;
+    background: #1ed760; /* Cor verde do thumb */
     cursor: pointer;
     margin-top: -4px; /* Garante alinhamento central */
 }
 
+/* Estilização do thumb (botão) do slider de volume no Firefox */
 .volume-slider::-moz-range-thumb {
     height: 12px;
     width: 12px;
     border-radius: 50%;
-    background: #1ed760;
+    background: #1ed760; /* Cor verde do thumb */
     cursor: pointer;
     border: none;
 }
