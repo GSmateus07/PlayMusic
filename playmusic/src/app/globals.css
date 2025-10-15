@@ -5,6 +5,7 @@
  para centralizar o player na vertical e horizontal.
 ==================================================
 */
+
 body {
     background-color: #121212; /* Fundo escuro */
     display: flex;
