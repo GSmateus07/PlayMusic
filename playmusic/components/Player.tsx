@@ -1,12 +1,9 @@
 'use client';
 
-// Importa Hooks essenciais do React para gerenciamento de estado, referências e performance
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-// Importa a lista de músicas e o tipo de faixa (Track)
 import playlist, { Track } from '../lib/playlist';
 
-// Define um tipo unificado para handlers de eventos que podem ser acionados por mouse, toque ou mudança (como o slider)
 type SeekHandler = (
   e: React.MouseEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement> | React.ChangeEvent<HTMLInputElement>
 ) => void;
