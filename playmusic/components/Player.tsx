@@ -1,391 +1,295 @@
-'use client';
+"use client";
+import { useState, useRef, useEffect } from "react";
+import playlist from "../lib/playlist"; 
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import Image from 'next/image';
-import playlist, { Track } from '../lib/playlist';
+export default function Player() {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const activeItemRef = useRef<HTMLLIElement>(null); 
+  
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // ESTADO DO VOLUME
+  const [volume, setVolume] = useState(0.5); 
+  const [isMuted, setIsMuted] = useState(false);
+  const [lastVolume, setLastVolume] = useState(0.5);
 
-type SeekHandler = (
-  e: React.MouseEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement> | React.ChangeEvent<HTMLInputElement>
-) => void;
+  const currentSong = playlist[currentIndex];
 
-// Componente principal do Player
-const Player: React.FC = () => {
-  // ----------------------------------------------------
-  // 1. ESTADOS (useState): Gerenciam os dados dinâmicos do player
-  // ----------------------------------------------------
-  const [currentTrackIndex, setCurrentTrackIndex] = useState(0); // Índice da música atual na playlist
-  const [isPlaying, setIsPlaying] = useState(false);             // Se a música está tocando (true) ou pausada (false)
-  const [currentTime, setCurrentTime] = useState(0);             // Posição atual da reprodução (em segundos)
-  const [duration, setDuration] = useState(0);                   // Duração total da música (em segundos)
-  const [volume, setVolume] = useState(0.5);                     // Nível de volume atual (de 0.0 a 1.0)
-  const [lastVolume, setLastVolume] = useState(0.5);             // Armazena o volume antes de silenciar (para restaurar)
-  const [isSeeking, setIsSeeking] = useState(false);             // Indica se o usuário está arrastando o slider de progresso
-
-  // ----------------------------------------------------
-  // 2. REFERÊNCIAS (useRef): Acesso direto a elementos do DOM (HTML)
-  // ----------------------------------------------------
-  const audioRef = useRef<HTMLAudioElement | null>(null);         // Referência ao elemento <audio> HTML
-  const progressSliderRef = useRef<HTMLInputElement | null>(null); // Referência ao input range (slider de progresso)
-  const volumeSliderRef = useRef<HTMLInputElement | null>(null);   // Referência ao input range (slider de volume)
-
-  // ----------------------------------------------------
-  // 3. VARIÁVEIS COMPUTADAS
-  // ----------------------------------------------------
-  const currentTrack: Track = playlist[currentTrackIndex]; // Obtém os dados completos da faixa atual
-
-  // ----------------------------------------------------
-  // 4. FUNÇÕES DE UTILIDADE E CONTROLE
-  // ----------------------------------------------------
-
-  /**
-   * Converte um tempo em segundos para o formato "Minuto:Segundo" (ex: 3:05).
-   * @param time O tempo em segundos.
-   * @returns String formatada.
-   */
-  const formatTime = (time: number): string => {
-    if (isNaN(time) || time < 0) return '0:00';
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  // Funções de formatação de tempo
+  const formatTime = (time: number) => {
+    if (!time || isNaN(time)) return "0:00";
+    const min = Math.floor(time / 60);
+    const sec = Math.floor(time % 60);
+    return `${min}:${sec < 10 ? "0" : ""}${sec}`;
   };
 
-  /**
-   * Atualiza visualmente a cor de preenchimento de um slider (progresso ou volume).
-   * Usa `useCallback` para memorizar a função e evitar recriações desnecessárias.
-   * @param slider O elemento input range (slider).
-   * @param value O valor atual do slider.
-   * @param max O valor máximo do slider.
-   */
-  const updateSliderColor = useCallback(
-    (slider: HTMLInputElement | null, value: number, max: number) => {
-      if (!slider || max === 0) return;
-      const percent = (value / max) * 100;
-      // Aplica um gradiente CSS para colorir a parte já percorrida
-      slider.style.background = `linear-gradient(to right, #1ed760 0%, #1ed760 ${percent}%, #535353 ${percent}%, #535353 100%)`;
-    },
-    [] // Array de dependências vazio, pois a função não depende de nenhum estado/prop
-  );
-
-  /**
-   * Lida com a mudança de valor no slider de progresso enquanto o usuário arrasta.
-   */
-  const handleSeek: React.ChangeEventHandler<HTMLInputElement> = (e) => {
-    const newTime = parseFloat(e.target.value);
-    setCurrentTime(newTime);
-    updateSliderColor(progressSliderRef.current, newTime, duration);
+  // Atualiza o tempo e o progresso
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      const current = audioRef.current.currentTime;
+      const dur = audioRef.current.duration || 0;
+      setCurrentTime(current);
+      setProgress(dur ? (current / dur) * 100 : 0);
+    }
   };
 
-  /**
-   * Registra o início do arrastar no slider de progresso.
-   */
-  const handleSeekStart = () => setIsSeeking(true);
-
-  /**
-   * Aplica o novo tempo de reprodução ao elemento <audio> após o usuário soltar o slider.
-   */
-  const handleSeekFinished: SeekHandler = (e) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const newTime = parseFloat(e.currentTarget.value);
-    audio.currentTime = newTime; // Define o novo tempo de reprodução
-    setCurrentTime(newTime);
-    setIsSeeking(false);
+  // Quando o áudio estiver pronto
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration || 0);
+      setIsLoading(false);
+      audioRef.current.volume = volume;
+      // IMPORTANTE: Inicia o play se o isPlaying já estiver true (caso de pular música)
+      if (isPlaying) {
+          audioRef.current.play().catch(e => console.error("Erro no autoplay após carregar metadata: ", e));
+      }
+    }
   };
 
-  /**
-   * Alterna o estado de reprodução (Play/Pause).
-   */
-  const togglePlayPause = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
+  // Play/pause
+  const togglePlay = () => {
+    if (!audioRef.current) return;
     if (isPlaying) {
-      audio.pause();
-      setIsPlaying(false);
+      audioRef.current.pause();
     } else {
-      // Tenta dar play e lida com a Promise retornada (necessário para prevenir erros de autoplay)
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => setIsPlaying(true))
-          .catch((error) => {
-            console.error('Erro ao reproduzir áudio:', error);
-            setIsPlaying(false);
+      audioRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+  
+  // LÓGICA DE VOLUME (Omitida por brevidade, mas permanece inalterada)
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume;
+    }
+    if (newVolume > 0 && isMuted) {
+      setIsMuted(false);
+    }
+  };
+
+  const toggleMute = () => {
+    if (!audioRef.current) return;
+    
+    if (isMuted || volume === 0) {
+      const restoreVolume = lastVolume > 0 ? lastVolume : 0.5;
+      setVolume(restoreVolume);
+      audioRef.current.volume = restoreVolume;
+      setIsMuted(false);
+    } else {
+      setLastVolume(volume);
+      setVolume(0);
+      audioRef.current.volume = 0;
+      setIsMuted(true);
+    }
+  };
+
+  const getVolumeIcon = () => {
+    if (isMuted || volume === 0) {
+      return "fas fa-volume-mute";
+    }
+    if (volume < 0.5) {
+      return "fas fa-volume-down";
+    }
+    return "fas fa-volume-up";
+  };
+  // FIM LÓGICA DE VOLUME
+
+  // Avançar/retroceder 10 segundos
+  const skipTime = (seconds: number) => {
+    if (audioRef.current) {
+      const newTime = Math.min(
+        audioRef.current.duration,
+        Math.max(0, audioRef.current.currentTime + seconds)
+      );
+      audioRef.current.currentTime = newTime;
+    }
+  };
+
+  // Mudar posição pelo slider
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (audioRef.current && duration) {
+      const newTime = (parseFloat(e.target.value) / 100) * duration;
+      audioRef.current.currentTime = newTime;
+    }
+  };
+
+  // Trocar música (CHAVE: Define isPlaying como true)
+  const changeSong = (index: number) => {
+    setCurrentIndex(index);
+    setProgress(0);
+    setIsPlaying(true); // FORÇA O PLAY
+    setIsLoading(true);
+  };
+
+  // Próxima música (CHAVE: Define isPlaying como true)
+  const nextSong = () => {
+    setCurrentIndex((prev) => (prev + 1) % playlist.length);
+    setProgress(0);
+    setIsPlaying(true); // FORÇA O PLAY
+    setIsLoading(true);
+  };
+
+  // Música anterior (CHAVE: Define isPlaying como true)
+  const prevSong = () => {
+    setCurrentIndex((prev) =>
+      prev === 0 ? playlist.length - 1 : prev - 1
+    );
+    setProgress(0);
+    setIsPlaying(true); // FORÇA O PLAY
+    setIsLoading(true);
+  };
+
+  const handleEnded = () => {
+    nextSong();
+  };
+
+  // Efeito para carregar a música e garantir a rolagem
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.load();
+      // O play real é agora feito no handleLoadedMetadata, 
+      // mas se já estiver tocando, tentamos tocar aqui também por segurança.
+      if (isPlaying) { 
+          audioRef.current.play().catch(e => {
+            // Em navegadores modernos, a primeira reprodução deve ser 
+            // iniciada por uma interação do usuário (togglePlay).
+            // Tentativas subsequentes (como pular música) são liberadas.
+            // Aqui, apenas garantimos que o estado é isPlaying=true.
           });
       }
     }
-  };
-
-  /**
-   * Carrega uma nova faixa da playlist no player.
-   * Usa `useCallback` para otimizar, pois é usada no useEffect e em outras handlers.
-   * @param index O índice da nova faixa.
-   * @param autoPlay Se deve começar a tocar automaticamente (padrão é o estado atual de isPlaying).
-   */
-  const loadTrack = useCallback(
-    (index: number, autoPlay: boolean = isPlaying) => {
-      // Atualiza o índice da faixa e reseta o tempo/duração
-      setCurrentTrackIndex(index);
-      setCurrentTime(0);
-      setDuration(0);
-
-      const audio = audioRef.current;
-      if (!audio) return;
-
-      // Define a nova fonte de áudio e recarrega o elemento
-      audio.src = playlist[index].audioSrc;
-      audio.currentTime = 0;
-      audio.load();
-
-      // Se autoPlay for verdadeiro, tenta dar play após um pequeno delay
-      if (autoPlay) {
-        setTimeout(() => {
-          const playPromise = audio.play();
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => setIsPlaying(true))
-              .catch((error) => {
-                if (error.name !== 'AbortError') console.error('Erro ao reproduzir áudio após load:', error);
-                setIsPlaying(false);
-              });
-          }
-        }, 150);
-      } else setIsPlaying(false);
-    },
-    [isPlaying] // Depende de isPlaying para decidir se deve tocar automaticamente
-  );
-
-  /**
-   * Passa para a próxima música (circularmente).
-   */
-  const handleNext = () => loadTrack((currentTrackIndex + 1) % playlist.length, true);
-
-  /**
-   * Volta para a música anterior (circularmente).
-   */
-  const handlePrev = () => loadTrack((currentTrackIndex - 1 + playlist.length) % playlist.length, true);
-
-  /**
-   * Lida com a mudança de valor no slider de volume.
-   */
-  const handleVolumeChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
-    const newVolume = parseFloat(e.target.value);
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    audio.volume = newVolume; // Aplica o volume ao elemento de áudio
-    setVolume(newVolume);
-    if (newVolume > 0) setLastVolume(newVolume); // Salva o volume anterior se não for zero
-    updateSliderColor(volumeSliderRef.current, newVolume, 1);
-  };
-
-  /**
-   * Alterna o estado de mudo (mute/unmute).
-   */
-  const toggleMute = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (volume > 0) {
-      // Silencia
-      setLastVolume(volume);
-      setVolume(0);
-      audio.volume = 0;
-    } else {
-      // Restaura
-      const restored = lastVolume || 0.5;
-      setVolume(restored);
-      audio.volume = restored;
+    
+    // LÓGICA DE ROLAGEM
+    if (activeItemRef.current) {
+        activeItemRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest', 
+        });
     }
-    updateSliderColor(volumeSliderRef.current, audio.volume, 1);
-  };
 
-  /**
-   * Retorna o ícone de volume apropriado (mudo, baixo ou alto).
-   */
-  const getVolumeIcon = () => {
-    if (volume === 0) return <i className="fas fa-volume-mute"></i>;
-    if (volume > 0.5) return <i className="fas fa-volume-up"></i>;
-    return <i className="fas fa-volume-down"></i>;
-  };
+  }, [currentIndex]); 
 
-  // ----------------------------------------------------
-  // 5. EFEITOS (useEffect): Lidam com a sincronização e efeitos colaterais
-  // ----------------------------------------------------
 
-  /**
-   * Efeito principal: Configura e limpa os event listeners do elemento <audio>.
-   * Roda quando o componente é montado e sempre que as dependências mudam.
-   */
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.volume = volume;
-
-    // Listener para atualizar o tempo atual e o slider enquanto a música toca
-    const onTimeUpdate = () => {
-      if (!isSeeking && audio.currentTime !== currentTime && audio.duration) {
-        setCurrentTime(audio.currentTime);
-        updateSliderColor(progressSliderRef.current, audio.currentTime, audio.duration);
-      }
-    };
-
-    // Listener para obter a duração total da música quando os metadados são carregados
-    const onLoadedMetadata = () => {
-      setDuration(audio.duration);
-      updateSliderColor(progressSliderRef.current, audio.currentTime, audio.duration);
-    };
-
-    // Listener para avançar para a próxima música quando a atual termina
-    const onEnded = () => handleNext();
-    // Listeners para sincronizar o estado isPlaying com o elemento de áudio
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
-
-    // Adiciona os listeners
-    audio.addEventListener('timeupdate', onTimeUpdate);
-    audio.addEventListener('loadedmetadata', onLoadedMetadata);
-    audio.addEventListener('ended', onEnded);
-    audio.addEventListener('play', onPlay);
-    audio.addEventListener('pause', onPause);
-
-    // Função de limpeza: Remove os listeners quando o componente é desmontado ou o efeito é reexecutado
-    return () => {
-      audio.removeEventListener('timeupdate', onTimeUpdate);
-      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
-      audio.removeEventListener('ended', onEnded);
-      audio.removeEventListener('play', onPlay);
-      audio.removeEventListener('pause', onPause);
-    };
-  }, [currentTrackIndex, volume, currentTime, isSeeking, updateSliderColor, handleNext]); // Dependências
-
-  /**
-   * Efeito secundário: Garante que a cor dos sliders (volume e progresso) seja atualizada.
-   * Roda quando o tempo, duração ou volume mudam.
-   */
-  useEffect(() => {
-    if (progressSliderRef.current && volumeSliderRef.current) {
-      updateSliderColor(volumeSliderRef.current, volume, 1);
-      if (duration > 0) updateSliderColor(progressSliderRef.current, currentTime, duration);
-    }
-  }, [currentTime, duration, volume, updateSliderColor]);
-
-  // ----------------------------------------------------
-  // 6. RENDERIZAÇÃO (JSX)
-  // ----------------------------------------------------
   return (
-    <div className="player-card">
-      {/* Informações da Capa */}
-      <div className="header">
-        <Image
-          src={currentTrack.coverSrc}
-          alt={`Capa do Áudio: ${currentTrack.title}`}
-          className="cover-image"
-          width={350}
-          height={350}
-          priority
-        />
-      </div>
-
-      {/* Informações da Faixa */}
-      <div className="info">
-        <h2 className="title">{currentTrack.title}</h2>
-        <p className="subtitle">{currentTrack.subtitle}</p>
-      </div>
-
-      {/* Barra de Progresso */}
-      <div className="progress-bar-container">
-        <span className="current-time">{formatTime(currentTime)}</span>
-        <input
-          type="range"
-          id="progress-slider"
-          ref={progressSliderRef}
-          min="0"
-          max={duration || 100}
-          value={currentTime}
-          step="0.01"
-          onChange={handleSeek} // Atualiza o estado de tempo ao arrastar
-          onMouseDown={handleSeekStart} // Inicia o estado de seek
-          onMouseUp={handleSeekFinished} // Finaliza o seek e aplica o tempo
-          onTouchStart={handleSeekStart}
-          onTouchEnd={handleSeekFinished}
-          aria-label="Controle de Progresso da Música"
-          title={`Tempo Atual: ${formatTime(currentTime)} de ${formatTime(duration)}`} // Tooltip com o tempo
-        />
-        <span className="total-time">{formatTime(duration)}</span>
-      </div>
-
-      {/* Controles Principais e de Volume (MODIFICADOS para ficarem lado a lado) */}
-      <div className="controls-and-volume-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0 20px' }}>
+    // ... (restante do JSX inalterado)
+    <div className="main-player-container">
+      
+      {/* 🎧 BLOCO ESQUERDO: Player Principal (Capa, Info, Controles) */}
+      <div className="player-column">
         
-        {/* GRUPO DE CONTROLES: VOLTAR, PLAY/PAUSE, AVANÇAR */}
-        <div className="main-controls" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            {/* Botão Anterior */}
-            <button
-              className="control-button"
-              onClick={handlePrev}
-              aria-label="Música anterior"
-              title="Voltar" // Tooltip
-            >
-              <i className="fas fa-backward fa-2x"></i> {/* Ícone com tamanho 2x */}
-            </button>
-
-            {/* Botão Play/Pause */}
-            <button
-              className="control-button play-pause"
-              onClick={togglePlayPause}
-              aria-label={isPlaying ? 'Pausar' : 'Reproduzir'}
-              title={isPlaying ? 'Pausar' : 'Reproduzir'} // Tooltip Condicional
-            >
-              {isPlaying ? (
-                <i className="fas fa-pause fa-3x"></i> // Ícone Pause 3x
-              ) : (
-                <i className="fas fa-play fa-3x"></i> // Ícone Play 3x
-              )}
-            </button>
-
-            {/* Botão Próxima */}
-            <button
-              className="control-button"
-              onClick={handleNext}
-              aria-label="Próxima música"
-              title="Avançar" // Tooltip
-            >
-              <i className="fas fa-forward fa-2x"></i> {/* Ícone com tamanho 2x */}
-            </button>
+        {/* Capa e Info */}
+        <div className="media-info-container-split">
+          <img
+            src={currentSong.coverSrc}
+            alt="Capa"
+            className="mini-cover-image" 
+          />
+          <div className="info-split">
+            <h2 className="title truncate-text">{currentSong.title}</h2>
+            <p className="subtitle truncate-text">{currentSong.subtitle}</p>
+          </div>
         </div>
-
-        {/* CONTROLE DE VOLUME */}
-        <div className="volume-control" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Botão MUDO */}
-          <button
-            className="control-button volume-button"
-            onClick={toggleMute}
-            aria-label="Ativar ou Desativar Som"
-            title={volume === 0 ? 'Ativar Som' : 'Silenciar'} // Tooltip Condicional
-          >
-            {getVolumeIcon()}
-          </button>
-          {/* Slider de Volume */}
+        
+        {/* Barra de Progresso (abaixo da info) */}
+        <div className="progress-bar-container">
+          <span className="current-time">{formatTime(currentTime)}</span>
           <input
             type="range"
-            className="volume-slider"
-            ref={volumeSliderRef}
             min="0"
-            max="1"
-            step="0.01"
-            value={volume}
-            onChange={handleVolumeChange} // Atualiza o volume e a cor
-            aria-label="Controle de Volume"
-            title={`Volume: ${Math.round(volume * 100)}%`} // Tooltip com o volume atual
+            max="100"
+            id="progress-slider"
+            value={isNaN(progress) ? 0 : progress}
+            onChange={handleSeek}
+            title={`Progresso: ${Math.round(progress)}%`}
           />
+          <span className="total-time">{formatTime(duration)}</span>
         </div>
+
+        {/* Controles (Botões e Volume) */}
+        <div className="controls-split">
+          <div className="controls-left">
+              <button onClick={prevSong} className="control-button" aria-label="Música Anterior" title="Música Anterior">
+                <i className="fas fa-step-backward"></i>
+              </button>
+              <button onClick={() => skipTime(-10)} className="control-button" aria-label="Voltar 10 segundos" title="Voltar 10 segundos">
+                <i className="fas fa-undo"></i>
+              </button>
+              <button onClick={togglePlay} className="control-button play-pause" aria-label={isPlaying ? "Pausar" : "Tocar"} title={isPlaying ? "Pausar" : "Tocar"}>
+                {isPlaying ? (
+                  <i className="fas fa-pause play-pause-icon"></i>
+                ) : (
+                  <i className="fas fa-play play-pause-icon ml-1"></i>
+                )}
+              </button>
+              <button onClick={() => skipTime(10)} className="control-button" aria-label="Avançar 10 segundos" title="Avançar 10 segundos">
+                <i className="fas fa-redo"></i>
+              </button>
+              <button onClick={nextSong} className="control-button" aria-label="Próxima Música" title="Próxima Música">
+                <i className="fas fa-step-forward"></i>
+              </button>
+          </div>
+
+          <div className="volume-control-split">
+            <button onClick={toggleMute} className="control-button" aria-label="Mudo/Volume" title={isMuted || volume === 0 ? "Desmutar" : "Mudo"}>
+                <i className={getVolumeIcon()}></i>
+            </button>
+            <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={volume}
+                onChange={handleVolumeChange}
+                className="volume-slider"
+                title={`Volume: ${Math.round(volume * 100)}%`}
+            />
+          </div>
+        </div>
+
+        {isLoading && (
+          <p className="subtitle" style={{marginTop: '10px'}}>Carregando...</p>
+        )}
+      </div> 
+
+      {/* 🎶 BLOCO DIREITO: Playlist */}
+      <div className="playlist-column">
+          <h3 className="playlist-title-split">Próximas Músicas</h3>
+          <ul className="playlist-split">
+              {playlist.map((song, index) => (
+                  <li
+                      key={index}
+                      onClick={() => changeSong(index)}
+                      ref={index === currentIndex ? activeItemRef : null} 
+                      className={`playlist-item-split ${index === currentIndex ? "active" : ""}`}
+                  >
+                      {/* Ícone de Volume/Número */}
+                      {index === currentIndex ? (
+                          <i className="fas fa-volume-up playlist-number-icon"></i> 
+                      ) : (
+                          <span className="playlist-number-icon">{index + 1}.</span> 
+                      )}
+                      <span className="playlist-text-wrapper">
+                          {song.title}
+                      </span>
+                  </li>
+              ))}
+          </ul>
       </div>
 
-      {/* Elemento de Áudio (oculto, responsável pela reprodução) */}
-      <audio id="audio" ref={audioRef} src={currentTrack.audioSrc}></audio>
+      <audio
+        ref={audioRef}
+        src={currentSong.audioSrc}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onEnded={handleEnded}
+      />
     </div>
   );
-};
-
-export default Player;
+}

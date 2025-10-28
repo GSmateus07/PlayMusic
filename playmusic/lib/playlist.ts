@@ -18,10 +18,7 @@ const playlist: Track[] = [
     {
         title: "Barulho do Foguete",
         subtitle: "Zé Neto e Cristiano",
-        // O caminho começa com "/" para indicar a pasta raiz 'public' do Next.js.
-        // Assim, '/assets/audio/...' aponta para 'public/assets/audio/...' no servidor.
         audioSrc: "/assets/audio/BarulhodoFoguete.mp3",
-        // A capitalização do nome do arquivo deve ser EXATA (case-sensitive) para funcionar no servidor.
         coverSrc: "/assets/imagens/BarulhodoFoguete.png" 
     },
     {
@@ -32,7 +29,7 @@ const playlist: Track[] = [
     },
     {
         title: "Ilusão",
-        subtitle: "MC Hariel, MC Ryan, DJ Alok, MC Davi, MC Salvador da Rima e Djay W",
+        subtitle: "MC H, MC R, DJ A, MC D, MC S e Djay W",
         audioSrc: "/assets/audio/Ilusao.mp3",
         coverSrc: "/assets/imagens/Ilusao.png"
     },
@@ -49,7 +46,7 @@ const playlist: Track[] = [
         coverSrc: "/assets/imagens/PisandonaLua.png"
     },
     {
-        title: "Seis cordas / Baião de dois / Cavalo Lampião",
+        title: "Seis cordas",
         subtitle: "Wesley Safadão",
         audioSrc: "/assets/audio/6cordas.mp3",
         coverSrc: "/assets/imagens/6cordas.png"
